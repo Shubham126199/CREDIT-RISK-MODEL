@@ -1,0 +1,71 @@
+pip install --upgrade keras
+pip install --upgrade --no-deps git+git://github.com/Theano/Theano.git
+pip install --upgrade pip
+pip install tensorflow
+pip install --upgrade keras
+
+#Part 1 Data Processing
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+dataset=pd.read_csv('Churn_Modelling.csv')
+x = dataset.iloc[:, 3:13].values
+y = dataset.iloc[:, -1:].values
+#encoding categorical data
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+labelencoder_x1=LabelEncoder()
+x[:, 1] = labelencoder_x1.fit_transform(x[:, 1])
+labelencoder_x2=LabelEncoder()
+x[:, 2] = labelencoder_x2.fit_transform(x[:, 2])
+transform = ColumnTransformer([("Geography", OneHotEncoder(), [1])], remainder="passthrough")
+x = transform.fit_transform(x)
+x = x[:, 1:] #Avoiding dummy variable trap
+
+from sklearn.model_selection import train_test_split
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
+
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+x_train = sc.fit_transform(x_train)
+x_test = sc.fit_transform(x_test)
+
+#PART 2 , making ANN
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
+classifier = Sequential()
+classifier.add(Dense(output_dim=6, activation='relu', input_dim=11, init='uniform')) #added 1st layer
+classifier.add(Dense(output_dim=6, activation='relu', init='uniform'))#2nd layer
+#calssifier.add(Dense(output_dim=1, activation='sigmoid', init='uniform'))#output layer, if we have more then 2 categories as dependent variable, we use 'softmax' as activation fn in output layer       
+num_classes=1
+classifier.add(Dense(num_classes, activation='sigmoid'))
+#compiling ANN
+classifier.compile(optimizer='adam', loss= 'binary_crossentropy', metrics=['accuracy'])#loss function for a logistic function is 'logarithmic loss' instead of mse, and is called 'binary_crossentrophy'. and for more than 2categories it is 'categorical_crossentrophy.
+classifier.fit(x_train, y_train, nb_epoch=100, batch_size=10)
+y_pred = classifier.predict(x_test)
+y_pred = (y_pred>0.5)
+#Evaluating model
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_test, y_pred)
+(1544+181)/2000  #accuracy of 86.25%, same as in our training of ANN
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
