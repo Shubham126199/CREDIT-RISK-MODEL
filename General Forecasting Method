@@ -1,0 +1,178 @@
+import pandas as pd
+import numpy as np
+%matplotlib inline
+df = pd.read_csv('airline_passengers.csv', index_col = 0, parse_dates = True)
+df.index.freq = 'MS'
+df.info()
+#Train Test split, Holt winters model
+train_data = df.iloc[0:109]
+test_data = df.iloc[108:]
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+fitted_model = ExponentialSmoothing(train_data['Thousands of Passengers'], trend = 'mul', seasonal = 'mul', seasonal_periods = 12).fit()
+test_prediction = fitted_model.forecast(36)
+#not used Test_data.fitted_model like in Cross sectional data
+#Note carefully, the above 36 months(3years),is prediction of additional 3 years from train dataset which ends at 1959-01-01 i.e additional 3 years after that, which is nothing but our test dataset,so we use fitted_model.forecast(36) to technically forecast forthcoming 3 year(Test dataset). Thats y we havent used Train_data anywhere befroe classifier 
+
+train_data['Thousands of Passengers'].plot(legend = True, label = 'Train', figsize=(10,5))
+test_data['Thousands of Passengers'].plot(legend = True, label = 'Test', figsize = (10,5))
+
+#Running HW model
+train_data['Thousands of Passengers'].plot(legend = True, label = 'Train', figsize=(10,5))
+test_data['Thousands of Passengers'].plot(legend = True, label = 'Test', figsize = (10,5))
+test_prediction.plot(legend=True,label = 'Prediction',figsize = (10,5), xlim = ['1958-01-01','1961-01-01'])
+#Note it has not yet predicted the future date but predicted the test dataset.
+#Evaluating the above prediction of test dataset
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+mean_squared_error(test_data, test_prediction)
+np.sqrt(mean_squared_error(test_data, test_prediction))
+pd.DataFrame(test_prediction)
+test_prediction.describe()
+mean_absolute_error(test_data, test_prediction)
+#Now predicting future points
+final_model = ExponentialSmoothing(df['Thousands of Passengers'], trend = 'mul', seasonal = 'mul', seasonal_periods = 12).fit()
+forecast_prediction = final_model.forecast(36)
+df['Thousands of Passengers'].plot(figsize = (10,5))
+forecast_prediction.plot(figsize = (10,5))
+#Stationarity & Differencing
+df2 = pd.read_csv('samples.csv', index_col = 0, parse_dates = True)
+df2['d'].plot(figsize = (10,5))#is stationary
+df2['a'].plot()
+df2['b'].plot() #non stationary, linear trend but no seasonal trend
+#Non stationary data can be made to look like stationary through differencing
+from statsmodels.tsa.statespace.tools import diff
+df2['d'] - df2['d'].shift(1) #this is what diff function does
+diff(df2['d'], k_diff=1).plot(figsize=(10,5))
+
+#Autocorrelation and Partial Autocorelation Functions
+import statsmodels.api as sm
+from statsmodels.tsa.stattools import acovf,acf,pacf,pacf_yw,pacf_ols
+#with non stationary dataset
+df1 = pd.read_csv(('airline_passengers.csv'), index_col = 0, parse_dates = True) 
+df1.index.freq = 'MS'
+#Stationary dataset
+df3 = pd.read_csv('DailyTotalFemaleBirths.csv', index_col = 0, parse_dates = True)
+df3.index.freq = 'D'
+df4 = pd.DataFrame({'a':[13,15,10,5,9]})
+acf(df4['a'])
+pacf_yw(df4['a'], nlags = 4, method = 'mle')
+pacf_ols(df4['a'], nlags = 4)
+from pandas.plotting import lag_plot
+lag_plot(df['Thousands of Passengers'])
+lag_plot(df3['Births']) #as it is stationary data
+
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+df1.plot()
+plot_acf(df1, lags = 140)
+plot_acf(df3, lags = 100)
+plot_pacf(df1, lags = 25)
+plot_pacf(df3)
+
+# AUTO REGRESSION in statsmodel
+from statsmodels.tsa.ar_model import AR, ARResults
+dfAR = pd.read_csv('uspopulation.csv', index_col = 'DATE', parse_dates=True)
+dfAR.index.freq='MS'
+dfAR.plot(figsize=(10,5))
+len(dfAR)
+train = dfAR.iloc[:84]
+test = dfAR.iloc[84:]
+import warnings 
+warnings.filterwarnings('ignore')
+
+model = AR(train['PopEst'])
+AR1fit= model.fit(maxlag = 1) #here 1 is 1 time lagged ( 1 month) in AR1 model.
+AR1fit.params
+start = len(train)
+end =len(train)+len(test)-1
+#L1.PopEst is lagged coeff.
+prediction1 = AR1fit.predict(start = start ,end = end, dynamic = False)
+prediction1 = prediction1.rename('AR1predictions')
+prediction1
+prediction1.plot(figsize=(10,5), legend = True)
+test.plot(legend  = True)
+#running together
+
+test.plot(legend  = True)
+prediction1.plot(figsize=(10,5), legend = True)
+test['PopEst'].plot(legend  = True)
+
+#AR2model, 2 lagged timestamp
+model2 = AR(trainAR_data)
+AR2fit= model2.fit(maxlag = 2) #here 1 is 1 time lagged ( 1 month) in AR1 model.
+AR2fit.params
+prediction2 = AR2fit.predict(start = start ,end = end, dynamic = False)
+prediction2 = prediction2.rename('AR2predictions')
+prediction2
+prediction2.plot(figsize=(10,5), legend = True)
+test['PopEst'].plot(legend  = True)
+
+#ALL 3 models together
+prediction2.plot(figsize=(10,5), legend = True)
+prediction1.plot(figsize=(10,5), legend = True)
+test['PopEst'].plot(figsize=(10,5), legend = True)
+
+#We have seen AR model with order 1 and 2, but what order is the best to forecast? It will be decided by our statsmodel.
+
+model3 = AR(train['PopEst'])
+ARfit = model3.fit(ic = 't-stat')
+ARfit.params
+prediction8 = ARfit.predict(start=start, end=end, dynamic = True)
+prediction8 = prediction8.rename('AR8 prediction')
+prediction8.plot(figsize=(10,5), legend = True)
+#note it has automatically determined 8 lagged time stamp, now evaluating all 3 AR models using metrics
+from sklearn.metrics import mean_squared_error
+#making 2 list
+labels = ['AR1predictions', 'AR2predictions', 'AR8 predictions']
+preds = [prediction1, prediction2, prediction8] #not it is not a string
+
+for i in range(3):
+    error = mean_squared_error(testAR_data,preds[i])
+    print(f'{labels} MSE is {error}') #This is f string loop
+# we can see AR model with order 8 has the least MSE.
+#all models together
+prediction1.plot(figsize=(10,5), legend = True)
+test.plot(legend  = True)
+prediction2.plot(figsize=(10,5), legend = True)
+prediction8.plot(figsize=(10,5), legend = True)
+
+# Forecasting Future, note we havent actually predicted the future yet, it was just test data prediction.
+model = AR(dfAR['PopEst'])
+ARfit = model.fit()
+predicted_values_1_year_into_future = ARfit.predict(start=len(dfAR), end = len(dfAR)+12).rename('1 year ahead')
+predicted_values_1_year_into_future.plot(legend = True)
+
+#both together
+dfAR['PopEst'].plot(legend  = True)
+predicted_values_1_year_into_future.plot(legend = True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
