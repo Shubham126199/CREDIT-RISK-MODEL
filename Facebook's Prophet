@@ -1,0 +1,108 @@
+from fbprophet import Prophet
+import pandas as pd
+df = pd.read_csv('BeerWineLiquor.csv')
+df.columns = ['ds', 'y']
+df['ds'] = pd.to_datetime(df['ds'])
+model = Prophet()
+model.fit(df)
+#Placeholder to hold for future Predictions
+future = model.make_future_dataframe(periods = 24, freq = 'MS')
+forecast = model.predict(future)
+forecast.columns
+forecast[['ds', 'yhat_lower', 'yhat_upper', 'yhat']]
+import matplotlib.pyplot as plt
+model.plot(forecast)
+plt.xlim('2014-01-01', '2020-12-01')
+
+model.plot_components(forecast)
+
+#Evaluating prophet and data split
+from fbprophet import Prophet
+import pandas as pd
+df = pd.read_csv('Miles_Traveled.csv')
+df.columns = ['ds' , 'y']
+df['ds'] = pd.to_datetime(df['ds'])              
+df.plot(x='ds', y = 'y') #because we have 2 columns here.
+df.info()
+train = df.iloc[:576]
+test = df.iloc[576:]
+model = Prophet()
+model.fit(train)
+future = model.make_future_dataframe(periods = 12, freq = 'MS')
+forecast = model.predict(future)
+ax = forecast.plot(x='ds', y='yhat', label='prediction', legend=True,figsize=(10,5))
+test.plot(x='ds', y = 'y', label='True Test Data', legend=True, ax=ax, xlim=('2017-06-01', '2019-01-01'))
+
+#Evaluating, rmse
+predictions = forecast.iloc[576:]['yhat']
+test
+from statsmodels.tools.eval_measures import rmse
+rmse(test['y'], predictions) 
+test.mean()
+#Facebooks own diagnostic test for evaluation
+from fbprophet.diagnostics import cross_validation, performance_metrics 
+from fbprophet.plot import plot_cross_validation_metric
+#initial ,period, horizon
+initial = 5*365
+initial = str(initial) + ' days'  #Prophet need days in specific format of string
+initial
+period = 5*365
+period = str(period) + ' days' #repeat or fold the process every 5 year of our 48 years dataset
+period
+horizon = 365
+horizon = str(horizon) + ' days' #how much into the future forecast, # https://facebook.github.io/prophet/docs/diagnostics.html
+
+df_cv = cross_validation(model, initial = initial, horizon = horizon, period = period)
+performance_metrics(df_cv)
+plot_cross_validation_metric(df_cv, 'mape')
+
+#Notice change in trend component, all variables removed
+import pandas as pd
+from fbprophet import Prophet
+df = pd.read_csv('HospitalityEmployees.csv')
+df.columns = ['ds', 'y']
+df['ds'] = pd.to_datetime(df['ds'])
+df.plot(x = 'ds', y = 'y')
+#this is into the future
+model = Prophet()
+model.fit(df)
+future = model.make_future_dataframe(12, freq = 'MS')
+forecast = model.predict(future)
+
+from fbprophet.plot import add_changepoints_to_plot
+fig = model.plot(forecast)
+a = add_changepoints_to_plot(fig.gca(), model, forecast) #gca=get current axis
+
+#Notics change in seasonality component, variables removed
+import pandas as pd
+from fbprophet import Prophet
+df = pd.read_csv('airline_passengers.csv')
+df.columns = ['ds', 'y']
+df['ds'] = pd.to_datetime(df['ds'])
+df.plot(x = 'ds', y = 'y')
+
+model = Prophet()
+model.fit(df)
+future = model.make_future_dataframe(50, freq = 'MS')
+forecast = model.predict(future)
+fig = model.plot(forecast)
+fig = model.plot_components(forecast)
+
+from fbprophet.plot import add_changepoints_to_plot
+fig = model.plot(forecast)
+a = add_changepoints_to_plot(fig.gca(), model, forecast) #gca=get current axis
+
+#with multiplicative component
+model2 = Prophet(seasonality_mode='multiplicative')
+model2.fit(df)
+future = model2.make_future_dataframe(50, freq = 'MS')
+forecast = model2.predict(future)
+fig = model2.plot(forecast)
+fig = model2.plot_components(forecast)
+# note this model shows better prediction as seasonality changes overtime in figure
+
+
+
+
+
+
