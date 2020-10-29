@@ -31,7 +31,7 @@ loan_data['issue_d_date'] = pd.to_datetime(loan_data['issue_d'], format = '%b-%y
 loan_data['mths_since_issue_d'] = round(pd.to_numeric((pd.to_datetime('2017-12-01') - loan_data['issue_d_date']) / np.timedelta64(1, 'M')))
 loan_data['mths_since_issue_d'].describe()
 
-#Creating dummy variables for descrete variables first.
+#Creating dummy variables for discrete variables first.
 loan_data_dummies = [pd.get_dummies(loan_data['grade'], prefix = 'grade', prefix_sep = ':'),
                      pd.get_dummies(loan_data['sub_grade'], prefix = 'sub_grade', prefix_sep = ':'),
                      pd.get_dummies(loan_data['home_ownership'], prefix = 'home_ownership', prefix_sep = ':'),
