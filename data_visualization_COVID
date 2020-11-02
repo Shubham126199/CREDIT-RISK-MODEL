@@ -1,0 +1,463 @@
+dbd_India = pd.read_excel('india_dailycases.xlsx')
+dbd_Italy = pd.read_excel('italy_daily_+vecases.xlsx')
+dbd_Brazil = pd.read_excel('brazil_dailycases.xlsx')
+
+#df_Italy = df_complete.query('Country=="Italy"').groupby(['Date', 'Country'])[['Confirmed', 'Recovered', 'Deaths']].sum().reset_index()
+# this can be used instead of manually writing day by day cases for each, first import df_complete
+
+
+total_cases = df['Confirmed'].sum()
+print('total confirmed cases in India till 19th May 2019:', total_cases)
+
+df.style.background_gradient(cmap='Reds')
+
+#df = df.drop(['Sno'], axis=1)
+
+df['Active Cases'] = df['Confirmed'] - (df['Recovered'] - df['Deaths'])
+total_active = df['Active Cases'].sum()
+print('total active cases in India till 12th may:', total_active)
+
+tot_case = df.groupby('State')['Active Cases'].sum().sort_values(ascending=False)
+tot_case = pd.DataFrame(tot_case) #tot_case from series to Dataframe
+
+tot_case
+
+df_full = pd.merge(India_coord, df, on = 'State')
+df_full
+
+map = folium.Map(location=[20, 70], zoom_start=4, tiles='StamenTerrain')
+for lat, long, value, name in zip(df_full['Latitude'], df_full['Longitude'], df_full['Active Cases'], df_full['State']):
+    folium.CircleMarker([lat, long], radius = value*0.01, color = 'red', fill_color = 'red', fill_opacity=0.3).add_to(map)
+map   
+
+#popup = ('<strong>State</strong>: ' + str(name).capitalize() + '<br>''<strong>Total Cases</strong: ' + str(value) + '<br>'
+
+map = folium.Map(location=[20, 70], zoom_start=4, tiles='StamenTerrain')
+for lat, long, value, name in zip(df_full['Latitude'], df_full['Longitude'], df_full['Active Cases'], df_full['State']):
+    folium.CircleMarker([lat, long], radius = value*0.01, popup = ('<strong>State</strong>: ' + str(name).capitalize() + '<br>''<strong>Total Cases</strong: ' + str(value) + '<br>'), color = 'red', fill_color = 'red', fill_opacity=0.3).add_to(map)
+map   
+
+#Check the difference between these, one pops up window when clicked on a circle
+
+#Seaborn for data visualization
+
+fig, ax = plt.subplots(1, 1, figsize=(10,5))
+data = df_full[['State', 'Confirmed', 'Recovered', 'Deaths']]
+data.sort_values('Confirmed', ascending=False, inplace=True)
+sns.set_color_codes(palette='pastel')
+sns.barplot(x='Confirmed', y='State', data=data, label='Total', color='red')
+
+sns.set_color_codes(palette='muted')
+sns.barplot(x='Recovered', y='State', data=data, label='Cured', color='green')
+# Labeling existing plot elements, call ax.legend, run together 47-57
+ax.legend(ncol=2, loc='lower right')
+ax.set(xlim=(0, 30000), ylabel='Name of State / UT', xlabel='Cases')
+
+#How COVID is rising in India?
+
+import plotly.graph_objects as go
+fig = go.Figure()
+fig.add_trace(go.Scatter(x = dbd_India['Date'], y = dbd_India['Total Cases'], mode='lines+markers', name = 'Total Cases'))
+fig.update_layout(title_text='Trend of covid cases in India (Cumulative case)', plot_bgcolor = 'rgb(230, 230, 230)')
+fig.show()
+
+import plotly.express as px
+fig = px.bar(dbd_India, x='Date', y='New Cases', barmode='group', height=400)
+fig.update_layout(title_text='Trend of covid cases in India daily bases', plot_bgcolor = 'rgb(230, 230, 230)')
+fig.show()
+
+#OR 
+
+import plotly.express as px
+fig = px.scatter(x=dbd_India['Date'], y=dbd_India['Total Cases'])
+fig.update_layout(title_text='Trend of covid cases in India Cumulative', plot_bgcolor = 'rgb(230, 230, 230)')
+fig.show()
+
+#PART 2, IS INDIA'S TREND SIMILAR TO ITALY, USA, BRAZIL?
+
+# Part 2.1, in India, USA, Brazil, Italy
+
+import plotly.express as px
+fig = px.bar(dbd_India, x='Date', y='Total Cases', title = "India's Total cases", color = 'Total Cases',
+             opacity=0.5, orientation='v', height=600, color_discrete_sequence=px.colors.cyclical.Twilight)
+fig.update_layout(plot_bgcolor='rgb(230, 230, 230)')        
+fig.show()
+  
+    
+fig = px.bar(dbd_Italy, x='Date', y='Total Cases', title = "Italy's Total cases", color = 'Total Cases',
+             opacity=0.5, orientation='v', height=600, color_discrete_sequence=px.colors.cyclical.Twilight)
+fig.update_layout(plot_bgcolor='rgb(230, 230, 230)')        
+fig.show()    
+    
+fig = px.bar(dbd_Brazil, x='Date', y='Total Cases', title = "Brazil's Total cases", color = 'Total Cases',
+             opacity=0.5, orientation='v', height=600, color_discrete_sequence=px.colors.cyclical.Twilight)
+fig.update_layout(plot_bgcolor='rgb(230, 230, 230)')        
+fig.show()             
+
+#Comparing the cases between different countries using subplots in single canvas
+
+from plotly.subplots import make_subplots
+fig = make_subplots(2, 2, specs = [[{'secondary_y':True},{'secondary_y':True}], [{'secondary_y':True},{'secondary_y':True}]], 
+                    subplot_titles = ('India', 'Brazil', 'Italy', 'USA')) #secondary_y is the right corner line showing all y values altogether
+
+
+fig.add_trace(go.Bar(x=dbd_India['Date'], y=dbd_India['Total Cases'], 
+                     marker=dict(color=dbd_India['Total Cases'], coloraxis='coloraxis')),1, 1)
+
+
+fig.add_trace(go.Bar(x=dbd_Brazil['Date'], y=dbd_Brazil['Total Cases'], 
+                     marker=dict(color=dbd_Brazil['Total Cases'], coloraxis='coloraxis')),1, 2)
+
+
+fig.add_trace(go.Bar(x=dbd_Italy['Date'], y=dbd_Italy['Total Cases'], 
+                     marker=dict(color=dbd_Italy['Total Cases'], coloraxis='coloraxis')),2, 1)
+
+
+
+fig.update_layout(coloraxis=dict(colorscale='Bluered_r'), showlegend = False, title_text='Total Cases(Cumulative)')
+fig.update_layout(plot_bgcolor='rgb(230, 230, 230)') #This code is not necessary, just changes background color
+
+#Trend After crossing 20k cases
+#Below graph shows us number of days after 20k cases to total cases in y axis
+
+title = "Rate of Growth after 20 Thousand Confirmed Cases in below countries"
+
+labels = ['India', 'Brazil', 'USA', 'Italy']
+colors = ['rgb(122, 128, 0)', 'rgb(255, 0, 0)', 'rgb(49, 130, 189)', 'rgb(120, 70, 650)']
+
+mode_size = [10, 10, 12]
+line_size = [2, 2, 6]
+
+fig = go.Figure()
+
+fig.add_trace(go.Scatter(x=dbd_India['days after surpassing 20k cases'], y=dbd_India['Total Cases'], mode='lines', 
+                        name=labels[0], line=dict(color=colors[0], width=line_size[2]), connectgaps=True))
+
+                        
+fig.add_trace(go.Scatter(x=dbd_Brazil['days after surpassing 20k cases'], y=dbd_Brazil['Total Cases'], mode='lines', 
+                        name=labels[1], line=dict(color=colors[1], width=line_size[0]), connectgaps=True))
+
+#fig.add_trace(go.Scatter(x=dbd_USA['days after surpassing 20k cases'], y=dbd_USA['Total Cases'], mode='lines', 
+                       # name=labels[2], line=dict(color=colors[2], width=line_size[1]), connectgaps=True))
+
+fig.add_trace(go.Scatter(x=dbd_Italy['days after surpassing 20k cases'], y=dbd_Italy['Total Cases'], mode='lines', 
+                        name=labels[3], line=dict(color=colors[3], width=line_size[1]), connectgaps=True))
+
+fig.update_layout(xaxis_title = 'Days after 20 Thousand Cases have passed', yaxis_title='Cumulative cases')
+
+#add these lines in above cell at the end
+
+#annotations = []
+
+#annotations.append(dict(xref='paper', yref='paper', x=0.5, y = -0.1, 
+                      # xanchor ='center', yanchor='top', 
+                      # text='Days after 20k cases', 
+                      # font=dict(family='Arial', size=12, color='rgb(120, 120, 120)'), 
+                      # showarrow=False))
+
+#fig.update_layout(annotations = annotations, plot_bgcolor='white', yaxis_title='Cumulative cases')
+
+
+#PART-3, EXPLORING WORLDWIDE CASES
+
+df_complete = pd.read_csv('covid_19_clean_complete.csv', parse_dates=['Date'])
+df_complete
+
+
+df_complete.rename(columns={'Country/Region':'Country'}, inplace=True)
+
+df_complete
+
+df_confirmed = pd.read_csv('time_series_covid_19_confirmed.csv')
+df_recovered = pd.read_csv('time_series_covid_19_recovered.csv')
+df_deaths = pd.read_csv('time_series_covid_19_deaths.csv')
+
+df_confirmed.rename(columns={'Country/Region':'Country'}, inplace=True)
+df_recovered.rename(columns={'Country/Region':'Country'}, inplace=True)
+df_deaths.rename(columns={'Country/Region':'Country'}, inplace=True)
+
+
+df_complete_2 = df_complete.groupby(['Date', 'Country', 'Province/State'])[['Date', 'Country', 'Province/State', 'Confirmed', 'Deaths', 'Recovered']]
+
+
+df_complete_2.head()
+
+#For India's Data
+df_complete.query('Country=="India"').groupby(['Date', 'Country'])[['Confirmed', 'Recovered', 'Deaths']].sum().reset_index()
+
+df_complete.groupby('Date').sum().reset_index()  #.sum(), adds alike 'date'
+
+df_complete.query('Country=="India"')
+
+#VISUALIZING WORLDWIDE COVID-19 CASES
+
+confirmed = df_complete.groupby('Date').sum()['Confirmed'].reset_index()
+recovered = df_complete.groupby('Date').sum()['Recovered'].reset_index()
+deaths = df_complete.groupby('Date').sum()['Deaths'].reset_index()
+
+confirmed
+
+deaths
+
+fig2 = go.Figure()
+fig2.add_trace(go.Scatter(x=confirmed['Date'], y=confirmed['Confirmed'], mode='lines+markers', 
+                          name='Confirmed', line=dict(color='blue', width=2)))
+
+fig2.add_trace(go.Scatter(x=deaths['Date'], y=deaths['Deaths'], mode='lines+markers', 
+                          name='Deaths', line=dict(color='red', width=2)))
+
+fig2.add_trace(go.Scatter(x=recovered['Date'], y=recovered['Recovered'], mode='lines+markers', 
+                         name='Recovered', line=dict(color='green', width=2)))
+
+fig2.update_layout(title='Worldwide Covid-19 Situation', yaxis=dict(title='Number of Cases'))
+
+#Map Showcasing
+
+df_complete3 = pd.read_csv('covid_19_clean_complete.csv') #note did not use parse_data
+
+df_complete3.rename(columns={'Country/Region':'Country'}, inplace=True)
+
+df_latlong = pd.merge(df_complete3, df_confirmed, on=['Country', 'Province/State'])
+
+df_latlong.info()
+
+df_latlong
+
+fig=px.density_mapbox(df_latlong,lat="Lat",lon="Long",hover_name="Province/State",hover_data=["Confirmed","Deaths","Recovered"],animation_frame="Date",color_continuous_scale="Portland",radius=7,zoom=0,height=700)
+fig.update_layout(title='Worldwide Corona Virus Cases')
+fig.update_layout(mapbox_style="open-street-map",mapbox_center_lon=0)
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+#Final Part-forecasting using PROPHET
+
+from fbprophet import Prophet
+
+confirmed = df_complete.groupby('Date').sum()['Confirmed'].reset_index()
+recovered = df_complete.groupby('Date').sum()['Recovered'].reset_index()
+deaths = df_complete.groupby('Date').sum()['Deaths'].reset_index()
+
+confirmed.columns = ['ds', 'y']
+confirmed['ds'] = pd.to_datetime(confirmed['ds'])
+
+model = Prophet(interval_width=0.95)
+
+model.fit(confirmed)
+
+future = model.make_future_dataframe(periods=16)
+
+future.tail()
+
+forecast = model.predict(future)
+
+forecast[['yhat', 'ds','yhat_lower', 'yhat_upper']]
+
+fig = model.plot(forecast);
+
+fig5 = go.Figure()
+fig5.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines+markers', 
+                          name='Confirmed', line=dict(color='black', width=2)))
+fig5.update_layout(title='Future Covid-19 Confirmed Cases', yaxis=dict(title='Number of Cases'))
+
+#Forecasting for Deaths
+
+deaths.columns = ['ds', 'y']
+deaths['ds'] = pd.to_datetime(confirmed['ds'])
+
+model2 = Prophet(interval_width=0.95)
+
+model2.fit(deaths)
+
+future = model.make_future_dataframe(periods=16)
+
+future.tail()
+
+forecast = model2.predict(future)
+
+forecast[['yhat', 'ds','yhat_lower', 'yhat_upper']]
+
+fig = model2.plot(forecast);
+
+fig6 = go.Figure()
+fig6.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines+markers', 
+                          name='Confirmed', line=dict(color='red', width=2)))
+fig6.update_layout(title='Future Covid-19 Death Cases', yaxis=dict(title='Number of Deaths'))
+
+fig6 = go.Figure()
+fig6.add_trace(go.Scatter(x=forecast['ds'], y=forecast['yhat'], mode='lines+markers', 
+                          name='(Forecasted) Confirmed', line=dict(color='red', width=2)))
+
+fig6.add_trace(go.Scatter(x=deaths['ds'], y=deaths['y'], mode='lines+markers', 
+                          name='Confirmed', line=dict(color='blue', width=2)))
+
+
+fig6.update_layout(title='(Actual vs Predicted) Covid-19 Death Cases', yaxis=dict(title='Number of Deaths'))
+
+#Future Prediction (INDIA'S CASE)
+
+df_INDIA = df_complete.query('Country=="India"')
+
+df_INDIA = df_INDIA.reset_index()
+
+df_INDIA
+
+confirmed_india = df_INDIA.groupby('Date').sum()['Confirmed'].reset_index()
+recovered_india = df_INDIA.groupby('Date').sum()['Recovered'].reset_index()
+deaths_india = df_INDIA.groupby('Date').sum()['Deaths'].reset_index()
+
+confirmed_india
+
+model3 = Prophet()
+
+confirmed_india.columns = ['ds', 'y']
+
+confirmed_india
+
+confirmed_india['ds'] = pd.to_datetime(confirmed_india['ds'])
+
+model3.fit(confirmed_india)
+
+future_india = model3.make_future_dataframe(periods=16)
+
+future_india
+
+forecast_india = model3.predict(future_india)
+
+forecast_india
+
+forecast_india[['ds', 'yhat_lower', 'yhat_upper', 'yhat']]
+
+model3.plot(forecast_india);
+
+fig10 = go.Figure()
+fig10.add_trace(go.Scatter(x=forecast_india['ds'], y=forecast_india['yhat'], mode='lines+markers', 
+                          name='Confirmed_India', line=dict(color='blue', width=2)))
+fig10.update_layout(title='Future Covid-19 Confirmed Cases of India', yaxis=dict(title='Number of Cases'))
+
+confirmed_india = df_INDIA.groupby('Date').sum()['Confirmed'].reset_index()
+
+confirmed_india
+
+#Actual confirmed cases vs Prophet's prediction
+
+fig10 = go.Figure()
+fig10.add_trace(go.Scatter(x=forecast_india['ds'], y=forecast_india['yhat'], mode='lines+markers', 
+                          name='(Predicted) Confirmed_India', line=dict(color='blue', width=2)))
+
+fig10.add_trace(go.Scatter(x=forecast_india['ds'], y=forecast_india['yhat_upper'], mode='lines', 
+                         name='(Upper bound) Forecasted Death Due to COVID-19 in India', line=dict(color='pink', width=2)))
+
+fig10.add_trace(go.Scatter(x=forecast_india['ds'], y=forecast_india['yhat_lower'], mode='lines', 
+                         name='(Lower bound) Forecasted Death Due to COVID-19 in India', line=dict(color='green', width=2)))
+
+
+fig10.add_trace(go.Scatter(x=confirmed_india['Date'], y=confirmed_india['Confirmed'], mode='lines+markers', 
+                          name='(Actual) Confirmed_India', line=dict(color='green', width=2)))
+
+fig10.update_layout(title='Covid-19 Confirmed Cases of India(Actual vs Predicted)', yaxis=dict(title='Number of Cases'))
+
+
+#Deaths forecasting in India
+
+deaths_india
+
+deaths_india.columns = ['ds', 'y']
+
+deaths_india['ds'] = pd.to_datetime(deaths_india['ds'])
+
+deaths_india
+
+model5 = Prophet()
+
+model5.fit(deaths_india)
+
+predict5=model5.make_future_dataframe(periods = 16)
+
+predict5
+
+forecast5 = model5.predict(predict5)
+
+forecast5
+
+forecast5[['ds', 'yhat_lower', 'yhat_upper', 'yhat']]
+
+model5.plot(forecast5);
+
+fig5 = go.Figure()
+
+fig5.add_trace(go.Scatter(x=forecast5['ds'], y=forecast5['yhat'], mode='lines+markers', 
+                         name='Forecasted Death Due to COVID-19 in India', line=dict(color='blue', width=2)))
+
+fig5.add_trace(go.Scatter(x=forecast5['ds'], y=forecast5['yhat_upper'], mode='lines', 
+                         name='(Upper bound) Forecasted Death Due to COVID-19 in India', line=dict(color='pink', width=2)))
+
+fig5.add_trace(go.Scatter(x=forecast5['ds'], y=forecast5['yhat_lower'], mode='lines', 
+                         name='(Lower bound) Forecasted Death Due to COVID-19 in India', line=dict(color='green', width=2)))
+
+fig5.add_trace(go.Scatter(x=deaths_india['ds'], y=deaths_india['y'], mode='lines+markers', 
+                         name='Actual Death Due to COVID-19 in India', line=dict(color='red', width=2)))
+
+fig5.update_layout(title='(Actual vs Predicted) COVID-19 Deaths in India', yaxis=dict(title='No. of Cases'))
+
+
+
+#USA's Prediction
+
+df_complete
+
+df_US = df_complete.query('Country=="US"').groupby(['Date', 'Country'])[['Confirmed', 'Recovered', 'Deaths']].sum().reset_index()
+
+df_US
+
+df_US_Confirmed = df_US[['Date', 'Confirmed']]
+df_US_Deaths = df_US[['Date', 'Deaths']]
+
+df_US_Deaths
+
+df_US_Deaths.columns = ['ds', 'y']
+
+df_US_Deaths['ds'] = pd.to_datetime(df_US_Deaths['ds'])
+
+modelUS=Prophet()
+
+df_US_Deaths
+
+modelUS.fit(df_US_Deaths)
+
+forecastUS = modelUS.make_future_dataframe(periods=16)
+
+forecastUS
+
+forecastUS = modelUS.predict(forecastUS)
+
+forecastUS
+
+forecastUS[['ds', 'yhat_lower', 'yhat_upper', 'yhat']]
+
+modelUS.plot(forecastUS);
+
+figUS = go.Figure()
+figUS.add_trace(go.Scatter(x=forecastUS['ds'], y=forecastUS['yhat'], mode='lines+markers', 
+                          name='Forecast for US Deaths', line=dict(color='blue', width=2)))
+
+figUS.add_trace(go.Scatter(x=forecastUS['ds'], y=forecastUS['yhat_upper'], mode='lines', opacity=0.9, 
+                           name='Forecast for US Deaths(upper bound)', line=dict(color='pink', width=4)))
+
+figUS.add_trace(go.Scatter(x=forecastUS['ds'], y=forecastUS['yhat_lower'], mode='lines', opacity=0.9, 
+                           name='Forecast for US Deaths(lower bound)', line=dict(color='green', width=4)))
+
+
+figUS.add_trace(go.Scatter(x=df_US_Deaths['ds'], y=df_US_Deaths['y'], mode='lines+markers', 
+                          name='Forecast for US Deaths', line=dict(color='red', width=2)))
+
+figUS.update_layout(title='(Actual vs Forecasted) Deaths Cases in the US', yaxis=dict(title='Deaths'))
+
+
+italy = pd.read_csv('covid19_italy_test.csv')
+
+italy
+
+df_Italy = df_complete.query('Country=="Italy"').groupby(['Date', 'Country'])[['Confirmed', 'Recovered', 'Deaths']].sum().reset_index()
+
+df_Italy
+
+df_complete
