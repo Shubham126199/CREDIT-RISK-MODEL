@@ -3,7 +3,6 @@ dbd_Italy = pd.read_excel('italy_daily_+vecases.xlsx')
 dbd_Brazil = pd.read_excel('brazil_dailycases.xlsx')
 
 #df_Italy = df_complete.query('Country=="Italy"').groupby(['Date', 'Country'])[['Confirmed', 'Recovered', 'Deaths']].sum().reset_index()
-# this can be used instead of manually writing day by day cases for each, first import df_complete
 
 
 total_cases = df['Confirmed'].sum()
