@@ -28,7 +28,7 @@ loan_data['term_int'] = pd.to_numeric(loan_data['term'].str.replace(' months', '
 type(loan_data['term_int'][0])
 
 loan_data['issue_d_date'] = pd.to_datetime(loan_data['issue_d'], format = '%Y-%m-%d')
-loan_data['mths_since_issue_d'] = round(pd.to_numeric((pd.to_datetime('2017-12-01') - loan_data['issue_d_date']) / np.timedelta64(1, 'M')))
+loan_data['mths_since_issue_d'] = round(pd.to_numeric((pd.to_datetime('2020-06-01') - loan_data['issue_d_date']) / np.timedelta64(1, 'M')))
 loan_data['mths_since_issue_d'].describe()
 
 #Creating dummy variables for discrete variables first.
